@@ -17,6 +17,8 @@
 
 #include <AIS_InteractiveContext.hxx>
 
+#include <TopoDS_Shape.hxx>
+
 class QMenu;
 class QRubberBand;
 
@@ -53,6 +55,10 @@ public slots:
     void reset(void);
     void zoom(void);
     void rotate(void);
+	void zoomObjects(void);
+	void rotateObjects(void);
+	void panObjects(void); 
+	void removeAllShapes();
 
 protected:
     // Paint events.
@@ -74,6 +80,10 @@ protected:
     virtual void onMButtonUp(const int theFlags, const QPoint thePoint);
     virtual void onRButtonUp(const int theFlags, const QPoint thePoint);
     virtual void onMouseMove(const int theFlags, const QPoint thePoint);
+
+	//Key events
+	virtual void keyPressEvent(QKeyEvent* e);
+	virtual void keyReleaseEvent(QKeyEvent* e);
 
     // Popup menu.
     virtual void addItemInPopup(QMenu* theMenu);

@@ -35,12 +35,14 @@
 #include <Aspect_Handle.hxx>
 #include <Aspect_DisplayConnection.hxx>
 
+#include <AIS_Shape.hxx>
+
 #ifdef WNT
-  #include <WNT_Window.hxx>
+#include <WNT_Window.hxx>
 #elif defined(__APPLE__) && !defined(MACOSX_USE_GLX)
-  #include <Cocoa_Window.hxx>
+#include <Cocoa_Window.hxx>
 #else
-  #include <Xw_Window.hxx>
+#include <Xw_Window.hxx>
 #endif
 
 // the key for multi selection :
@@ -51,404 +53,461 @@
 
 static Handle(Graphic3d_GraphicDriver)& GetGraphicDriver()
 {
-  static Handle(Graphic3d_GraphicDriver) aGraphicDriver;
-  return aGraphicDriver;
+	static Handle(Graphic3d_GraphicDriver) aGraphicDriver;
+	return aGraphicDriver;
 }
 
-OccView::OccView(QWidget* parent )
-    : QGLWidget(parent),
-    myXmin(0),
-    myYmin(0),
-    myXmax(0),
-    myYmax(0),    
-    myCurrentMode(CurAction3d_DynamicRotation),
-    myDegenerateModeIsOn(Standard_True),
-    myRectBand(NULL)
+OccView::OccView(QWidget* parent)
+	: QGLWidget(parent),
+	myXmin(0),
+	myYmin(0),
+	myXmax(0),
+	myYmax(0),
+	myCurrentMode(CurAction3d_Nothing),
+	myDegenerateModeIsOn(Standard_True),
+	myRectBand(NULL)
 {
-    // No Background
-    setBackgroundRole( QPalette::NoRole );
+	// No Background
+	setBackgroundRole(QPalette::NoRole);
 
-    // Enable the mouse tracking, by default the mouse tracking is disabled.
-    setMouseTracking( true );
+	// Enable the mouse tracking, by default the mouse tracking is disabled.
+	setMouseTracking(true);
+	setFocusPolicy(Qt::ClickFocus);
 
 }
 
 void OccView::init()
 {
-    // Create Aspect_DisplayConnection
+	// Create Aspect_DisplayConnection
 	Handle(Aspect_DisplayConnection) aDisplayConnection;/* =
-            new Aspect_DisplayConnection();*/
+														new Aspect_DisplayConnection();*/
 
-    // Get graphic driver if it exists, otherwise initialise it
-    if (GetGraphicDriver().IsNull())
-    {
-        GetGraphicDriver() = new OpenGl_GraphicDriver(aDisplayConnection);
-    }
+														// Get graphic driver if it exists, otherwise initialise it
+	if (GetGraphicDriver().IsNull())
+	{
+		GetGraphicDriver() = new OpenGl_GraphicDriver(aDisplayConnection);
+	}
 
-    // Get window handle. This returns something suitable for all platforms.
-    WId window_handle = (WId) winId();
+	// Get window handle. This returns something suitable for all platforms.
+	WId window_handle = (WId)winId();
 
-    // Create appropriate window for platform
-    #ifdef WNT
-        Handle(WNT_Window) wind = new WNT_Window((Aspect_Handle) window_handle);
-    #elif defined(__APPLE__) && !defined(MACOSX_USE_GLX)
-        Handle(Cocoa_Window) wind = new Cocoa_Window((NSView *) window_handle);
-    #else
-        Handle(Xw_Window) wind = new Xw_Window(aDisplayConnection, (Window) window_handle);
-    #endif
+	// Create appropriate window for platform
+#ifdef WNT
+	Handle(WNT_Window) wind = new WNT_Window((Aspect_Handle)window_handle);
+#elif defined(__APPLE__) && !defined(MACOSX_USE_GLX)
+	Handle(Cocoa_Window) wind = new Cocoa_Window((NSView *)window_handle);
+#else
+	Handle(Xw_Window) wind = new Xw_Window(aDisplayConnection, (Window)window_handle);
+#endif
 
-    // Create V3dViewer and V3d_View
-    myViewer = new V3d_Viewer(GetGraphicDriver()/*, (short* const)"viewer"*/);
+	// Create V3dViewer and V3d_View
+	myViewer = new V3d_Viewer(GetGraphicDriver()/*, (short* const)"viewer"*/);
 
-    myView = myViewer->CreateView();
+	myView = myViewer->CreateView();
 
-    myView->SetWindow(wind);
-    if (!wind->IsMapped()) wind->Map();
+	myView->SetWindow(wind);
+	if (!wind->IsMapped()) wind->Map();
 
-    // Create AISInteractiveContext
-    myContext = new AIS_InteractiveContext(myViewer);
+	// Create AISInteractiveContext
+	myContext = new AIS_InteractiveContext(myViewer);
 
-    // Set up lights etc
-    myViewer->SetDefaultLights();
-    myViewer->SetLightOn();
+	// Set up lights etc
+	myViewer->SetDefaultLights();
+	myViewer->SetLightOn();
 
-    myView->SetBackgroundColor(Quantity_NOC_BLACK);
-    myView->MustBeResized();
-    myView->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_GOLD, 0.08, V3d_ZBUFFER);
+	myView->SetBackgroundColor(Quantity_NOC_BLACK);
+	myView->MustBeResized();
+	myView->TriedronDisplay(Aspect_TOTP_LEFT_LOWER, Quantity_NOC_GOLD, 0.08, V3d_ZBUFFER);
 
-    myContext->SetDisplayMode(AIS_Shaded);
+	myContext->SetDisplayMode(AIS_Shaded);
 }
 
 const Handle_AIS_InteractiveContext OccView::getContext() const
 {
-    return myContext;
+	return myContext;
 }
 
-void OccView::paintEvent( QPaintEvent* e )
+void OccView::paintEvent(QPaintEvent* e)
 {
-    // eliminate the warning C4100: 'e' : unreferenced formal parameter
-    Q_UNUSED(e);
+	// eliminate the warning C4100: 'e' : unreferenced formal parameter
+	Q_UNUSED(e);
 
-    if (myContext.IsNull())
-    {
-        init();
-    }
+	if (myContext.IsNull())
+	{
+		init();
+	}
 
-    myView->Redraw();
+	myView->Redraw();
 }
 
-void OccView::resizeEvent( QResizeEvent* e )
+void OccView::resizeEvent(QResizeEvent* e)
 {
-    Q_UNUSED(e);
+	Q_UNUSED(e);
 
-    if( !myView.IsNull() )
-    {
-        myView->MustBeResized();
-    }
+	if (!myView.IsNull())
+	{
+		myView->MustBeResized();
+	}
 }
 
-void OccView::fitAll( void )
+void OccView::fitAll(void)
 {
-    myView->FitAll();
-    myView->ZFitAll();
-    myView->Redraw();
+	myView->FitAll();
+	myView->ZFitAll();
+	myView->Redraw();
 }
 
-void OccView::reset( void )
+void OccView::reset(void)
 {
-    myView->Reset();
+	myView->Reset();
 }
 
-void OccView::pan( void )
+void OccView::pan(void)
 {
-    myCurrentMode = CurAction3d_DynamicPanning;
+	myCurrentMode = CurAction3d_DynamicPanning;
 }
 
-void OccView::zoom( void )
+void OccView::zoom(void)
 {
-    myCurrentMode = CurAction3d_DynamicZooming;
+	myCurrentMode = CurAction3d_DynamicZooming;
 }
 
-void OccView::rotate( void )
+void OccView::rotate(void)
 {
-    myCurrentMode = CurAction3d_DynamicRotation;
+	myCurrentMode = CurAction3d_DynamicRotation;
+}
+
+void OccView::zoomObjects(void)
+{
+	myCurrentMode = CurAction3d_DynamicZooming;
+}
+
+void OccView::rotateObjects(void)
+{
+	myCurrentMode = CurAction3d_DynamicRotation;
+}
+
+void OccView::panObjects(void)
+{
+	myCurrentMode = CurAction3d_DynamicPanning;
+}
+
+void OccView::removeAllShapes()
+{
+	myContext->RemoveAll(true);
 }
 
 
-void OccView::mousePressEvent( QMouseEvent* e )
+void OccView::mousePressEvent(QMouseEvent* e)
 {
-    if (e->button() == Qt::LeftButton)
-    {
-        onLButtonDown((e->buttons() | e->modifiers()), e->pos());
-    }
-    else if (e->button() == Qt::MidButton)
-    {
-        onMButtonDown((e->buttons() | e->modifiers()), e->pos());
-    }
-    else if (e->button() == Qt::RightButton)
-    {
-        onRButtonDown((e->buttons() | e->modifiers()), e->pos());
-    }
+	if (e->button() == Qt::LeftButton)
+	{
+		onLButtonDown((e->buttons() | e->modifiers()), e->pos());
+	}
+	else if (e->button() == Qt::MidButton)
+	{
+		onMButtonDown((e->buttons() | e->modifiers()), e->pos());
+	}
+	else if (e->button() == Qt::RightButton)
+	{
+		onRButtonDown((e->buttons() | e->modifiers()), e->pos());
+	}
 }
 
-void OccView::mouseReleaseEvent( QMouseEvent* e )
+void OccView::keyPressEvent(QKeyEvent* e)
 {
-    if (e->button() == Qt::LeftButton)
-    {
-        onLButtonUp(e->buttons() | e->modifiers(), e->pos());
-    }
-    else if (e->button() == Qt::MidButton)
-    {
-        onMButtonUp(e->buttons() | e->modifiers(), e->pos());
-    }
-    else if (e->button() == Qt::RightButton)
-    {
-        onRButtonUp(e->buttons() | e->modifiers(), e->pos());
-    }
+	if (e->key() == Qt::Key_Control)
+	{
+		myCurrentMode = CurAction3d_DynamicZooming;
+	}
+
+	if (e->key() == Qt::Key_Shift)
+	{
+		myCurrentMode = CurAction3d_DynamicRotation;
+	}
+
+	if (e->key() == Qt::Key_Alt)
+	{
+		myCurrentMode = CurAction3d_DynamicPanning;
+	}
 }
 
-void OccView::mouseMoveEvent( QMouseEvent * e )
+void OccView::keyReleaseEvent(QKeyEvent* e)
 {
-    onMouseMove(e->buttons(), e->pos());
+	if (e->key() == Qt::Key_Control)
+	{
+		myCurrentMode = CurAction3d_Nothing;
+	}
+
+	if (e->key() == Qt::Key_Shift)
+	{
+		myCurrentMode = CurAction3d_Nothing;
+	}
+
+	if (e->key() == Qt::Key_Alt)
+	{
+		myCurrentMode = CurAction3d_Nothing;
+	}
 }
 
-void OccView::wheelEvent( QWheelEvent * e )
+void OccView::mouseReleaseEvent(QMouseEvent* e)
 {
-    onMouseWheel(e->buttons(), e->delta(), e->pos());
+	if (e->button() == Qt::LeftButton)
+	{
+		onLButtonUp(e->buttons() | e->modifiers(), e->pos());
+	}
+	else if (e->button() == Qt::MidButton)
+	{
+		onMButtonUp(e->buttons() | e->modifiers(), e->pos());
+	}
+	else if (e->button() == Qt::RightButton)
+	{
+		onRButtonUp(e->buttons() | e->modifiers(), e->pos());
+	}
 }
 
-void OccView::onLButtonDown( const int theFlags, const QPoint thePoint )
+void OccView::mouseMoveEvent(QMouseEvent * e)
 {
-    Q_UNUSED(theFlags);
-
-    // Save the current mouse coordinate in min.
-    myXmin = thePoint.x();
-    myYmin = thePoint.y();
-    myXmax = thePoint.x();
-    myYmax = thePoint.y();
-
+	onMouseMove(e->buttons(), e->pos());
 }
 
-void OccView::onMButtonDown( const int theFlags, const QPoint thePoint )
+void OccView::wheelEvent(QWheelEvent * e)
 {
-    Q_UNUSED(theFlags);
-
-    // Save the current mouse coordinate in min.
-    myXmin = thePoint.x();
-    myYmin = thePoint.y();
-    myXmax = thePoint.x();
-    myYmax = thePoint.y();
-
-    if (myCurrentMode == CurAction3d_DynamicRotation)
-    {
-        myView->StartRotation(thePoint.x(), thePoint.y());
-    }
+	onMouseWheel(e->buttons(), e->delta(), e->pos());
 }
 
-void OccView::onRButtonDown( const int theFlags, const QPoint thePoint )
+void OccView::onLButtonDown(const int theFlags, const QPoint thePoint)
 {
-    Q_UNUSED(theFlags);
-    Q_UNUSED(thePoint);
-}
+	Q_UNUSED(theFlags);
 
-void OccView::onMouseWheel( const int theFlags, const int theDelta, const QPoint thePoint )
-{
-    Q_UNUSED(theFlags);
-
-    Standard_Integer aFactor = 16;
-
-    Standard_Integer aX = thePoint.x();
-    Standard_Integer aY = thePoint.y();
-
-    if (theDelta > 0)
-    {
-        aX += aFactor;
-        aY += aFactor;
-    }
-    else
-    {
-        aX -= aFactor;
-        aY -= aFactor;
-    }
-
-    myView->Zoom(thePoint.x(), thePoint.y(), aX, aY);
-}
-
-void OccView::addItemInPopup( QMenu* theMenu )
-{
-    Q_UNUSED(theMenu);
-}
-
-void OccView::popup( const int x, const int y )
-{
-    Q_UNUSED(x);
-    Q_UNUSED(y);
-}
-
-void OccView::onLButtonUp( const int theFlags, const QPoint thePoint )
-{
-    // Hide the QRubberBand
-    if (myRectBand)
-    {
-        myRectBand->hide();
-    }
-
-    // Ctrl for multi selection.
-    if (thePoint.x() == myXmin && thePoint.y() == myYmin)
-    {
-        if (theFlags & Qt::ControlModifier)
-        {
-            multiInputEvent(thePoint.x(), thePoint.y());
-        }
-        else
-        {
-            inputEvent(thePoint.x(), thePoint.y());
-        }
-    }
+	// Save the current mouse coordinate in min.
+	myXmin = thePoint.x();
+	myYmin = thePoint.y();
+	myXmax = thePoint.x();
+	myYmax = thePoint.y();
 
 }
 
-void OccView::onMButtonUp( const int theFlags, const QPoint thePoint )
+void OccView::onMButtonDown(const int theFlags, const QPoint thePoint)
 {
-    Q_UNUSED(theFlags);
+	Q_UNUSED(theFlags);
 
-    if (thePoint.x() == myXmin && thePoint.y() == myYmin)
-    {
-        panByMiddleButton(thePoint);
-    }
+	// Save the current mouse coordinate in min.
+	myXmin = thePoint.x();
+	myYmin = thePoint.y();
+	myXmax = thePoint.x();
+	myYmax = thePoint.y();
+
+	if (myCurrentMode == CurAction3d_DynamicRotation)
+	{
+		myView->StartRotation(thePoint.x(), thePoint.y());
+	}
 }
 
-void OccView::onRButtonUp( const int theFlags, const QPoint thePoint )
+void OccView::onRButtonDown(const int theFlags, const QPoint thePoint)
 {
-    Q_UNUSED(theFlags);
-
-    popup(thePoint.x(), thePoint.y());
+	Q_UNUSED(theFlags);
+	Q_UNUSED(thePoint);
 }
 
-void OccView::onMouseMove( const int theFlags, const QPoint thePoint )
+void OccView::onMouseWheel(const int theFlags, const int theDelta, const QPoint thePoint)
 {
-    // Draw the rubber band.
-    if (theFlags & Qt::LeftButton)
-    {
-        drawRubberBand(myXmin, myYmin, thePoint.x(), thePoint.y());
+	Q_UNUSED(theFlags);
 
-        dragEvent(thePoint.x(), thePoint.y());
-    }
+	Standard_Integer aFactor = 16;
 
-    // Ctrl for multi selection.
-    if (theFlags & Qt::ControlModifier)
-    {
-        multiMoveEvent(thePoint.x(), thePoint.y());
-    }
-    else
-    {
-        moveEvent(thePoint.x(), thePoint.y());
-    }
+	Standard_Integer aX = thePoint.x();
+	Standard_Integer aY = thePoint.y();
 
-    // Middle button.
-    if (theFlags & Qt::MidButton)
-    {
-        switch (myCurrentMode)
-        {
-        case CurAction3d_DynamicRotation:
-            myView->Rotation(thePoint.x(), thePoint.y());
-            break;
+	if (theDelta > 0)
+	{
+		aX += aFactor;
+		aY += aFactor;
+	}
+	else
+	{
+		aX -= aFactor;
+		aY -= aFactor;
+	}
 
-        case CurAction3d_DynamicZooming:
-            myView->Zoom(myXmin, myYmin, thePoint.x(), thePoint.y());
-            break;
-
-        case CurAction3d_DynamicPanning:
-            myView->Pan(thePoint.x() - myXmax, myYmax - thePoint.y());
-            myXmax = thePoint.x();
-            myYmax = thePoint.y();
-            break;
-
-         default:
-            break;
-        }
-    }
-
+	myView->Zoom(thePoint.x(), thePoint.y(), aX, aY);
 }
 
-void OccView::dragEvent( const int x, const int y )
+void OccView::addItemInPopup(QMenu* theMenu)
 {
-    myContext->Select( myXmin, myYmin, x, y, myView );
-
-    emit selectionChanged();
+	Q_UNUSED(theMenu);
 }
 
-void OccView::multiDragEvent( const int x, const int y )
+void OccView::popup(const int x, const int y)
 {
-    myContext->ShiftSelect( myXmin, myYmin, x, y, myView );
+	Q_UNUSED(x);
+	Q_UNUSED(y);
+}
 
-    emit selectionChanged();
+void OccView::onLButtonUp(const int theFlags, const QPoint thePoint)
+{
+	// Hide the QRubberBand
+	if (myRectBand)
+	{
+		myRectBand->hide();
+	}
+
+	// Ctrl for multi selection.
+	if (thePoint.x() == myXmin && thePoint.y() == myYmin)
+	{
+		if (theFlags & Qt::ControlModifier)
+		{
+			multiInputEvent(thePoint.x(), thePoint.y());
+		}
+		else
+		{
+			inputEvent(thePoint.x(), thePoint.y());
+		}
+	}
 
 }
 
-void OccView::inputEvent( const int x, const int y )
+void OccView::onMButtonUp(const int theFlags, const QPoint thePoint)
 {
-    Q_UNUSED(x);
-    Q_UNUSED(y);
+	Q_UNUSED(theFlags);
 
-    myContext->Select();
-
-    emit selectionChanged();
+	if (thePoint.x() == myXmin && thePoint.y() == myYmin)
+	{
+		panByMiddleButton(thePoint);
+	}
 }
 
-void OccView::multiInputEvent( const int x, const int y )
+void OccView::onRButtonUp(const int theFlags, const QPoint thePoint)
 {
-    Q_UNUSED(x);
-    Q_UNUSED(y);
+	Q_UNUSED(theFlags);
 
-    myContext->ShiftSelect();
-
-    emit selectionChanged();
+	popup(thePoint.x(), thePoint.y());
 }
 
-void OccView::moveEvent( const int x, const int y )
+void OccView::onMouseMove(const int theFlags, const QPoint thePoint)
 {
-    myContext->MoveTo(x, y, myView);
+	// Draw the rubber band.
+	if (theFlags & Qt::LeftButton)
+	{
+		drawRubberBand(myXmin, myYmin, thePoint.x(), thePoint.y());
+
+		dragEvent(thePoint.x(), thePoint.y());
+	}
+
+	// Ctrl for multi selection.
+	if (theFlags & Qt::ControlModifier)
+	{
+		multiMoveEvent(thePoint.x(), thePoint.y());
+	}
+	else
+	{
+		moveEvent(thePoint.x(), thePoint.y());
+	}
+
+	// Mid button.
+	if (theFlags & Qt::MidButton)
+	{
+		switch (myCurrentMode)
+		{
+		case CurAction3d_DynamicRotation:
+			myView->Rotation(thePoint.x(), thePoint.y());
+			break;
+
+		case CurAction3d_DynamicZooming:
+			myView->Zoom(myXmin, myYmin, thePoint.x(), thePoint.y());
+			break;
+
+		case CurAction3d_DynamicPanning:
+			myView->Pan(thePoint.x() - myXmax, myYmax - thePoint.y());
+			myXmax = thePoint.x();
+			myYmax = thePoint.y();
+			break;
+
+		default:
+			break;
+		}
+	}
+
 }
 
-void OccView::multiMoveEvent( const int x, const int y )
+void OccView::dragEvent(const int x, const int y)
 {
-    myContext->MoveTo(x, y, myView);
+	myContext->Select(myXmin, myYmin, x, y, myView);
+
+	emit selectionChanged();
 }
 
-void OccView::drawRubberBand( const int minX, const int minY, const int maxX, const int maxY )
+void OccView::multiDragEvent(const int x, const int y)
 {
-    QRect aRect;
+	myContext->ShiftSelect(myXmin, myYmin, x, y, myView);
 
-    // Set the rectangle correctly.
-    (minX < maxX) ? (aRect.setX(minX)) : (aRect.setX(maxX));
-    (minY < maxY) ? (aRect.setY(minY)) : (aRect.setY(maxY));
+	emit selectionChanged();
 
-    aRect.setWidth(abs(maxX - minX));
-    aRect.setHeight(abs(maxY - minY));
-
-    if (!myRectBand)
-    {
-        myRectBand = new QRubberBand(QRubberBand::Rectangle, this);
-
-        // setStyle is important, set to windows style will just draw
-        // rectangle frame, otherwise will draw a solid rectangle.
-        myRectBand->setStyle(QStyleFactory::create("windows"));
-    }
-
-    myRectBand->setGeometry(aRect);
-    myRectBand->show();
 }
 
-void OccView::panByMiddleButton( const QPoint& thePoint )
+void OccView::inputEvent(const int x, const int y)
 {
-    Standard_Integer aCenterX = 0;
-    Standard_Integer aCenterY = 0;
+	Q_UNUSED(x);
+	Q_UNUSED(y);
 
-    QSize aSize = size();
+	myContext->Select();
 
-    aCenterX = aSize.width() / 2;
-    aCenterY = aSize.height() / 2;
+	emit selectionChanged();
+}
 
-    myView->Pan(aCenterX - thePoint.x(), thePoint.y() - aCenterY);
+void OccView::multiInputEvent(const int x, const int y)
+{
+	Q_UNUSED(x);
+	Q_UNUSED(y);
+
+	myContext->ShiftSelect();
+
+	emit selectionChanged();
+}
+
+void OccView::moveEvent(const int x, const int y)
+{
+	myContext->MoveTo(x, y, myView);
+}
+
+void OccView::multiMoveEvent(const int x, const int y)
+{
+	myContext->MoveTo(x, y, myView);
+}
+
+void OccView::drawRubberBand(const int minX, const int minY, const int maxX, const int maxY)
+{
+	QRect aRect;
+
+	// Set the rectangle correctly.
+	(minX < maxX) ? (aRect.setX(minX)) : (aRect.setX(maxX));
+	(minY < maxY) ? (aRect.setY(minY)) : (aRect.setY(maxY));
+
+	aRect.setWidth(abs(maxX - minX));
+	aRect.setHeight(abs(maxY - minY));
+
+	if (!myRectBand)
+	{
+		myRectBand = new QRubberBand(QRubberBand::Rectangle, this);
+
+		// setStyle is important, set to windows style will just draw
+		// rectangle frame, otherwise will draw a solid rectangle.
+		myRectBand->setStyle(QStyleFactory::create("windows"));
+	}
+
+	myRectBand->setGeometry(aRect);
+	myRectBand->show();
+}
+
+void OccView::panByMiddleButton(const QPoint& thePoint)
+{
+	Standard_Integer aCenterX = 0;
+	Standard_Integer aCenterY = 0;
+
+	QSize aSize = size();
+
+	aCenterX = aSize.width() / 2;
+	aCenterY = aSize.height() / 2;
+
+	myView->Pan(aCenterX - thePoint.x(), thePoint.y() - aCenterY);
 }

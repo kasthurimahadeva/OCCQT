@@ -17,166 +17,228 @@
 #include "ui_occQt.h"
 
 #include <AIS_InteractiveContext.hxx>
+
+#include <TopoDS_Shape.hxx>
 #include <AIS_Shape.hxx>
-#include <AIS_TextLabel.hxx>
 
+#include <STEPControl_Reader.hxx>
 
+#include <IGESControl_Reader.hxx>
 class OccView;
 
 //! Qt main window which include OpenCASCADE for its central widget.
 class occQt : public QMainWindow
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    //! constructor/destructor.
-    occQt(QWidget *parent = 0);
-    ~occQt();
+	//! constructor/destructor.
+	occQt(QWidget *parent = 0);
+	~occQt();
+
+
 
 protected:
-    //! create all the actions.
-    void createActions(void);
+	//! create all the actions.
+	void createActions(void);
 
-    //! create all the menus.
-    void createMenus(void);
+	//! create all the menus.
+	void createMenus(void);
 
-    //! create the toolbar.
-    void createToolBars(void);
+	//! create the toolbar.
+	void createToolBars(void);
 
-private slots:
-    //! show about box.
-    void about(void);
+	private slots:
+	//! show about box.
+	void about(void);
 
-    //! make box test.
-    void makeBox(void);
+	//! import files
+	void importBrepFiles(void);
+	void importIgesFiles(void);
+	void importStepFiles(void);
 
-    //! make cone test.
-    void makeCone(void);
+	//! export files
+	void exportBrepFiles(void);
+	void exportIgesFiles(void);
+	void exportStepFiles(void);
 
-    //! make sphere test.
-    void makeSphere(void);
+	//! make box test.
+	void makeBox(void);
 
-    //! make cylinder test.
-    void makeCylinder(void);
+	//! make cone test.
+	void makeCone(void);
 
-    //! make torus test.
-    void makeTorus(void);
+	//! make sphere test.
+	void makeSphere(void);
 
-    //! fillet test.
-    void makeFillet(void);
+	//! make cylinder test.
+	void makeCylinder(void);
 
-    //! chamfer test.
-    void makeChamfer(void);
-
-    //! test extrude algorithm.
-    void makeExtrude(void);
-
-    //! test revol algorithm.
-    void makeRevol(void);
-
-    //! test loft algorithm.
-    void makeLoft(void);
-
-    //! test boolean operation cut.
-    void testCut(void);
-
-    //! test boolean operation fuse.
-    void testFuse(void);
-
-    //! test boolean operation common.
-    void testCommon(void);
-
-    //! test helix shapes.
-    void testHelix(void);
-
+	//! make bottle test.
 	void makeBottle(void);
 
-	void makeBoxWithInput(void);
+	void displayShape(TopoDS_Shape shape);
 
-	
+	void removeAIS_Shape(TopoDS_Shape shape);
 
+	TopoDS_Shape getLastShape();
+
+	//! make torus test.
+	void makeTorus(void);
+
+	//! fillet test.
+	void makeFillet(void);
+
+	//! chamfer test.
+	void makeChamfer(void);
+
+	//! test extrude algorithm.
+	void makeExtrude(void);
+
+	//! test revol algorithm.
+	void makeRevol(void);
+
+	//! test loft algorithm.
+	void makeLoft(void);
+
+	//! test boolean operation cut.
+	void testCut(void);
+
+	//! test boolean operation fuse.
+	void testFuse(void);
+
+	//! test boolean operation common.
+	void testCommon(void);
+
+	//! test helix shapes.
+	void testHelix(void);
+
+	//! make box test
+	void makeBoxFromUserInputs(void);
+
+	void filletOption(void);
+
+	void drillOption(void);
 
 
 private:
-    Ui::occQtClass ui;
+	Ui::occQtClass ui;
 
-    //! make cylindrical helix.
-    void makeCylindricalHelix(void);
+	//! make cylindrical helix.
+	void makeCylindricalHelix(void);
 
-    //! make conical helix.
-    void makeConicalHelix(void);
+	//! make conical helix.
+	void makeConicalHelix(void);
 
-    //! make toroidal helix.
-    void makeToroidalHelix(void);
-
-	void displayASape(TopoDS_Shape topoDSShape);
-
-	void makeTextLabel(const char* lableText, const gp_Pnt gpPnt, Standard_Real Xoffset,
-		Standard_Real Yoffset,
-		Standard_Real Zoffset);
-
-	void removeDisplaiedAISShape();
-	void removeDisplaiedAISLables();
+	//! make toroidal helix.
+	void makeToroidalHelix(void);
 
 private:
-    //! the exit action.
-    QAction* mExitAction;
+	//! the exit action.
+	QAction* mExitAction;
 
-    //! the actions for the view: pan, reset, fitall.
-    QAction* mViewZoomAction;
-    QAction* mViewPanAction;
-    QAction* mViewRotateAction;
-    QAction* mViewResetAction;
-    QAction* mViewFitallAction;
+	//!import file actions
+	QAction* importBrepFilesAction;
+	QAction* importIgesFilesAction;
+	QAction* importStepFilesAction;
 
-    //! the actions to test the OpenCASCADE modeling algorithms.
-    QAction* mMakeBoxAction;
-    QAction* mMakeConeAction;
-    QAction* mMakeSphereAction;
-    QAction* mMakeCylinderAction;
-    QAction* mMakeTorusAction;
+	//!export file actions
+	QAction* exportBrepFilesAction;
+	QAction* exportIgesFilesAction;
+	QAction* exportStepFilesAction;
+
+	//! the actions for the view: pan, reset, fitall.
+	QAction* mViewZoomAction;
+	QAction* mViewPanAction;
+	QAction* mViewRotateAction;
+	QAction* mViewResetAction;
+	QAction* mViewFitallAction;
+
+	//! the actions to test the OpenCASCADE modeling algorithms.
+	QAction* mMakeBoxAction;
+	QAction* mMakeConeAction;
+	QAction* mMakeSphereAction;
+	QAction* mMakeCylinderAction;
+	QAction* mMakeTorusAction;
 	QAction* camber;
-	QAction* mMakeBottle;
-	QAction* mMakeBoxWithInput;
+	QAction* mMakeBottleAction;
 
-    //! make a fillet box.
-    QAction* mFilletAction;
-    QAction* mChamferAction;
-    QAction* mExtrudeAction;
-    QAction* mRevolveAction;
-    QAction* mLoftAction;
+	//! make a fillet box.
+	QAction* mFilletAction;
+	QAction* mChamferAction;
+	QAction* mExtrudeAction;
+	QAction* mRevolveAction;
+	QAction* mLoftAction;
 
-    //! boolean operations.
-    QAction* mCutAction;
-    QAction* mFuseAction;
-    QAction* mCommonAction;
+	//! boolean operations.
+	QAction* mCutAction;
+	QAction* mFuseAction;
+	QAction* mCommonAction;
 
-    //! helix shapes.
-    QAction* myHelixAction;
+	//! helix shapes.
+	QAction* myHelixAction;
 
-    //! show the about info action.
-    QAction* mAboutAction;
+	//! make box
+	QAction* mBoxAction;
 
-    //! the menus of the application.
-    QMenu* mFileMenu;
-    QMenu* mViewMenu;
-    QMenu* mPrimitiveMenu;
-    QMenu* mModelingMenu;
-    QMenu* mHelpMenu;
 
-    //! the toolbars of the application.
-    QToolBar* mViewToolBar;
-    QToolBar* mNavigateToolBar;
-    QToolBar* mPrimitiveToolBar;
-    QToolBar* mModelingToolBar;
-    QToolBar* mHelpToolBar;
+	//! show the about info action.
+	QAction* mAboutAction;
 
-    // wrapped the widget for occ.
-    OccView* myOccView;
+	//! zoom
+	QAction* mZoomAction;
 
-	//vector<Handle(AIS_Shape)> handleAISShapes;
-	QVector<Handle(AIS_Shape)> handleAISShapesVector;
-	QVector<Handle(AIS_TextLabel)> handleAISLablesVector;
+	//! Rotate
+	QAction* mRotateAction;
+
+	//! Pan
+	QAction* mPanAction;
+
+	QAction* addFilletAction;
+
+	QAction* addDrillAction;
+
+	//! Select Face
+	QAction* mSelectFaceAction;
+
+	//! the menus of the application.
+	QMenu* mFileMenu;
+	QMenu* importMenu;
+	QMenu* exportMenu;
+	QMenu* mViewMenu;
+	QMenu* mPrimitiveMenu;
+	QMenu* mModelingMenu;
+	QMenu* mHelpMenu;
+	QMenu* mMakeBoxMenu;
+	QMenu* mEditingMenu;
+
+	//! the toolbars of the application.
+	QToolBar* mViewToolBar;
+	QToolBar* mNavigateToolBar;
+	QToolBar* mPrimitiveToolBar;
+	QToolBar* mModelingToolBar;
+	QToolBar* mHelpToolBar;
+	QToolBar* mMakeBoxToolBar;
+	QToolBar* mEditingToolBar;
+
+	// wrapped the widget for occ.
+	OccView* myOccView;
+
+
+	TopoDS_Shape box;
+	TopoDS_Shape filletBox;
+	TopoDS_Shape drillBox;
+	TopoDS_Shape onlyDrilledBox;
+
+	QVector<Handle(AIS_Shape)> aisShapeVector;
+
+	bool isFilleted;
+	bool isDrilled;
+	TopoDS_Shape lastShape;
+
+	TopoDS_Shape brepFileShape;
+	TopoDS_Shape igesFileShape;
+	TopoDS_Shape stepFileShape;
 };
 
 #endif // OCCQT_H

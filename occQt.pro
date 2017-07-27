@@ -84,7 +84,7 @@ LIBS +=         \
     -lTKernel   \
     -lTKMath    \
     -lTKG3d     \
-	-lTKG2d		\
+	-lTKG2d     \
     -lTKBRep    \
     -lTKGeomBase\
     -lTKGeomAlgo\
@@ -96,4 +96,7 @@ LIBS +=         \
     -lTKService \
     -lTKV3d     \
     -lTKOpenGl  \
-    -lTKFillet
+    -lTKFillet  \
+	-lTKIGES	\
+	-lTKXSBase	\
+	-lTKSTEP
